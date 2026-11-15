@@ -316,7 +316,7 @@ final class KlosterhofPlan {
         }
         for (int[] c : new int[][] {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}}) {
             for (int y = 1; y <= 4; y++) {
-                p.set(c[0], y, c[1], y == 4 ? "chiseled_stone_bricks" : "polished_andesite_wall");
+                p.set(c[0], y, c[1], y == 4 ? "chiseled_stone_bricks" : "andesite_wall");
             }
         }
         for (int x = -1; x <= 1; x++) {

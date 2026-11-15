@@ -665,7 +665,8 @@ public final class Game {
         // 3. Am Herzen? Zuschlagen bzw. schießen.
         double toHeart = flat(here, heartLoc());
         double reach = e.type.ranged() ? MapLayout.RANGED_REACH : layout.heartReach();
-        if (toHeart <= reach) {
+        boolean atEnd = e.next == lane.path().size() - 1 && flat(here, loc(lane.path().get(e.next))) < 1.5;
+        if (toHeart <= reach || atEnd) {
             m.getPathfinder().stopPathfinding();
             m.lookAt(heartLoc().add(0, 1, 0));
             if (e.attackCooldown == 0) {
@@ -867,14 +868,12 @@ public final class Game {
     }
 
     private void label(Defence d) {
-        Function<String, Component> text = lang -> Component.text()
-                .append(Texts.text(lang, "defence." + d.type.id()))
+        Function<String, Component> text = lang -> Texts.text(lang, "defence." + d.type.id())
                 .append(Component.text(" " + "★".repeat(d.level) + "☆".repeat(DefenceType.MAX_LEVEL - d.level),
                         net.kyori.adventure.text.format.TextColor.color(Texts.GOLD)))
                 .append(Component.newline())
                 .append(Component.text(Ui.bar(d.health / d.maxHealth(), 10) + " " + (int) Math.ceil(d.health),
-                        net.kyori.adventure.text.format.TextColor.color(d.health / d.maxHealth() > 0.5 ? Texts.EMERALD : 0xE0533D)))
-                .build();
+                        net.kyori.adventure.text.format.TextColor.color(d.health / d.maxHealth() > 0.5 ? Texts.EMERALD : 0xE0533D)));
         if (d.label == null) {
             double top = d.type == DefenceType.PFEILTURM ? (d.level >= 2 ? 7 : 6) : 3.6;
             d.label = Holo.spawn(plugin, loc(d.spot.x() + 0.5, d.spot.y() + top, d.spot.z() + 0.5), text, 0.7f);
@@ -941,7 +940,11 @@ public final class Game {
                 p.sendMessage(Texts.msg(lang, error, Placeholder.unparsed("where", where)));
                 Ui.sound(p, "minecraft:entity.villager.no", 1f);
             } else {
-                item.setAmount(item.getAmount() - 1);
+                ItemStack hand = p.getInventory().getItemInMainHand();
+                if (tag.equals(Items.kitTag(hand))) {
+                    hand.setAmount(hand.getAmount() - 1);
+                    p.getInventory().setItemInMainHand(hand.getAmount() <= 0 ? null : hand);
+                }
             }
             return true;
         }

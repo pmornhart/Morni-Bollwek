@@ -69,7 +69,7 @@ public enum MapType {
     private static MapLayout talsperre() {
         List<Lane> lanes = List.of(
                 new Lane("nordtor", List.of(pt(-10.5, 1, -46.5), pt(0.5, 1, -35.5), pt(0.5, 1, -22.5), pt(0.5, 1, -10.5),
-                        pt(0.5, 1, -4.5))),
+                        pt(0.5, 1, -3.5))),
                 new Lane("bresche", List.of(pt(46.5, 1, 10.5), pt(33.5, 1, 0.5), pt(22.5, 1, 0.5), pt(10.5, 1, 0.5),
                         pt(4.5, 1, 0.5))),
                 new Lane("almtor", List.of(pt(-46.5, 1, -8.5), pt(-33.5, 1, 0.5), pt(-22.5, 1, 0.5), pt(-10.5, 1, 0.5),

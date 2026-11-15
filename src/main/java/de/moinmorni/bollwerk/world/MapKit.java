@@ -25,6 +25,15 @@ final class MapKit {
         return Math.hypot(px - cx, pz - cz);
     }
 
+    /** Abstand zu einem bestimmten Weg (waagrecht). */
+    static double segmentDistanceToLane(MapLayout.Lane lane, double x, double z) {
+        double best = Double.MAX_VALUE;
+        for (int i = 1; i < lane.path().size(); i++) {
+            best = Math.min(best, segmentDistance(x, z, lane.path().get(i - 1), lane.path().get(i)));
+        }
+        return best;
+    }
+
     /** Abstand zum nächsten Weg (waagrecht). */
     static double laneDistance(MapLayout layout, double x, double z) {
         double best = Double.MAX_VALUE;
