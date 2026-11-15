@@ -29,6 +29,8 @@ final class Defence {
     int level = 1;
     double health;
     int cooldown;
+    /** Wie oft der Bau schon gewirkt hat (Schüsse, Verbrühungen, Heilungen). */
+    int uses;
     Holo label;
     private final World world;
     private final int bx;

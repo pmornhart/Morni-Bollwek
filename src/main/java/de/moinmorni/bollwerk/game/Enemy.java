@@ -17,6 +17,7 @@ final class Enemy {
     int stuckChecks;
     Location lastPos;
     long towerHitTick = -100;
+    boolean arrived;
 
     Enemy(Mob mob, EnemyType type, int lane, double damageScale) {
         this.mob = mob;

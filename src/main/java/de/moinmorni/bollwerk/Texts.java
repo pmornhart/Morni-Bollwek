@@ -181,15 +181,15 @@ public final class Texts {
                 "<gray>Shoots the enemy closest</gray>\n<gray>to the heart.</gray>");
         t("defence.heilbanner.desc", "<gray>Heilt Verteidiger in der Nähe;</gray>\n<gray>auf Stufe 3 auch das Herz.</gray>",
                 "<gray>Heals defenders nearby;</gray>\n<gray>at level 3 it heals the heart too.</gray>");
-        t("defence.built", "<gray><player> hat eine <au><name></au> gebaut.</gray>", "<gray><player> built a <au><name></au>.</gray>");
+        t("defence.built", "<gray><player> hat gebaut: <au><name></au>.</gray>", "<gray><player> built: <au><name></au>.</gray>");
         t("defence.wrong-spot", "<gray>Das passt hier nicht. <where></gray>", "<gray>That doesn't fit here. <where></gray>");
         t("defence.taken", "<gray>Hier steht schon etwas – Rechtsklick drauf zum Verbessern.</gray>",
                 "<gray>Something already stands here – right-click it to upgrade.</gray>");
         t("defence.no-spot", "<gray>Kein Bauplatz in der Nähe. Bauplätze erkennst du an der schwebenden Schrift.</gray>",
                 "<gray>No build spot nearby. Build spots have floating text above them.</gray>");
-        t("defence.destroyed", "<red>Eine <name> wurde zerstört!</red>", "<red>A <name> was destroyed!</red>");
-        t("defence.upgraded", "<gray><player> hat die <au><name></au> auf Stufe <white><n></white> verbessert.</gray>",
-                "<gray><player> upgraded the <au><name></au> to level <white><n></white>.</gray>");
+        t("defence.destroyed", "<red>Zerstört: <name>!</red>", "<red>Destroyed: <name>!</red>");
+        t("defence.upgraded", "<gray><player> hat verbessert: <au><name></au> (Stufe <white><n></white>).</gray>",
+                "<gray><player> upgraded: <au><name></au> (level <white><n></white>).</gray>");
         t("defence.repaired", "<gray>Ausgebessert (<au>-<n> Gulden</au>).</gray>", "<gray>Repaired (<au>-<n> guilders</au>).</gray>");
         t("menu.defence.title", "<name> – Stufe <n>", "<name> – level <n>");
         t("menu.defence.info", "<gray>Leben: <white><hp></white></gray>\n<gray>Reichweite: <white><range></white> · Stärke: <white><power></white></gray>",
@@ -218,8 +218,8 @@ public final class Texts {
         t("boss.summon", "<gray><name> ruft Flinke herbei!</gray>", "<gray><name> summons scampers!</gray>");
 
         // ---------- Spielablauf ----------
-        t("game.welcome", "<gray>Verteidigt <au><heart></au>! <white>Krämerladen</white> (Smaragd) und <white>Bauplätze</white> nutzen – die erste Welle kommt in <au><secs> s</au>.</gray>",
-                "<gray>Defend the <au><heart></au>! Use the <white>shop</white> (emerald) and the <white>build spots</white> – the first wave arrives in <au><secs> s</au>.</gray>");
+        t("game.welcome", "<gray>Haltet das Herz: <au><heart></au>! <white>Krämerladen</white> (Smaragd) und <white>Bauplätze</white> nutzen – die erste Welle kommt in <au><secs> s</au>.</gray>",
+                "<gray>Hold the heart: <au><heart></au>! Use the <white>shop</white> (emerald) and the <white>build spots</white> – the first wave arrives in <au><secs> s</au>.</gray>");
         t("game.prepare.bar", "Aufbau: noch <secs> s – Welle <n> kommt", "Build phase: <secs> s left – wave <n> is coming");
         t("game.wave.bar", "Welle <n> – noch <left> Gegner", "Wave <n> – <left> enemies left");
         t("game.heart.bar", "<heart>: <hp> / <max>", "<heart>: <hp> / <max>");
@@ -235,10 +235,10 @@ public final class Texts {
         t("game.kill", "<au>+<n> Gulden</au> <gray>für <name></gray>", "<au>+<n> guilders</au> <gray>for <name></gray>");
         t("game.over.title", "<red>Das Bollwerk ist gefallen</red>", "<red>The bulwark has fallen</red>");
         t("game.over.sub", "<gray>Überstanden: <au><n> Wellen</au></gray>", "<gray>Survived: <au><n> waves</au></gray>");
-        t("game.over.chat", "<gray><heart> ist gefallen. Ihr habt <au><n> Wellen</au> überstanden – Platz <white><pos></white> auf der Bestenliste!</gray>",
-                "<gray>The <heart> has fallen. You survived <au><n> waves</au> – rank <white><pos></white> on the leaderboard!</gray>");
-        t("game.over.chat.plain", "<gray><heart> ist gefallen. Ihr habt <au><n> Wellen</au> überstanden.</gray>",
-                "<gray>The <heart> has fallen. You survived <au><n> waves</au>.</gray>");
+        t("game.over.chat", "<gray>Das Herz ist gefallen (<heart>). Ihr habt <au><n> Wellen</au> überstanden – Platz <white><pos></white> auf der Bestenliste!</gray>",
+                "<gray>The heart has fallen (<heart>). You survived <au><n> waves</au> – rank <white><pos></white> on the leaderboard!</gray>");
+        t("game.over.chat.plain", "<gray>Das Herz ist gefallen (<heart>). Ihr habt <au><n> Wellen</au> überstanden.</gray>",
+                "<gray>The heart has fallen (<heart>). You survived <au><n> waves</au>.</gray>");
         t("game.over.best", "<au>★ Neue Bestleistung für dich: <n> Wellen!</au>", "<au>★ New personal best: <n> waves!</au>");
         t("game.back", "<gray>Zurück in die Wachstube in <secs> s …</gray>", "<gray>Back to the guardhouse in <secs> s …</gray>");
         t("game.abandoned", "<gray>Alle sind gegangen – die Runde ist vorbei.</gray>", "<gray>Everyone left – the round is over.</gray>");

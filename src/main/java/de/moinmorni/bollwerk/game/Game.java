@@ -109,6 +109,8 @@ public final class Game {
     private long tick;
     private int towerShots;
     private int towerKills;
+    private int stuckTeleports;
+    private final int[] heartArrivals = new int[8];
     private int waveTotal;
     private boolean heartWarned;
     private boolean lowWarned;
@@ -237,10 +239,13 @@ public final class Game {
     public String status() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(Locale.ROOT, "karte=%s phase=%s welle=%d geschafft=%d herz=%.0f/%.0f gegner=%d spawn=%d "
-                + "bauten=%d turm_schuesse=%d turm_kills=%d", map.id(), phase, wave, cleared, heart.health(), heart.max(),
-                enemies.size(), toSpawn.size(), defences.size(), towerShots, towerKills));
+                + "bauten=%d turm_schuesse=%d turm_kills=%d festgesteckt=%d", map.id(), phase, wave, cleared, heart.health(),
+                heart.max(), enemies.size(), toSpawn.size(), defences.size(), towerShots, towerKills, stuckTeleports));
+        for (int i = 0; i < layout.lanes().size(); i++) {
+            sb.append(" am_herz_").append(layout.lanes().get(i).id()).append('=').append(heartArrivals[i]);
+        }
         for (Defence d : defences.values()) {
-            sb.append(String.format(Locale.ROOT, " bau%d=%s:%d:%.0f", d.spot.id(), d.type.id(), d.level, d.health));
+            sb.append(String.format(Locale.ROOT, " bau%d=%s:%d:%.0f:%d", d.spot.id(), d.type.id(), d.level, d.health, d.uses));
         }
         for (Fighter f : fighters.values()) {
             sb.append(String.format(Locale.ROOT, " %s=%s:%d:%d:%d", f.name(), f.state(), f.wallet().balance(), f.kills(),
@@ -669,6 +674,10 @@ public final class Game {
         if (toHeart <= reach || atEnd) {
             m.getPathfinder().stopPathfinding();
             m.lookAt(heartLoc().add(0, 1, 0));
+            if (!e.arrived) {
+                e.arrived = true;
+                heartArrivals[e.lane]++;
+            }
             if (e.attackCooldown == 0) {
                 e.attackCooldown = e.type.ranged() ? 2 * SECOND : SECOND;
                 hitHeart(e);
@@ -693,6 +702,7 @@ public final class Game {
             if (++e.stuckChecks >= STUCK_LIMIT) {
                 m.teleport(goal);
                 e.stuckChecks = 0;
+                stuckTeleports++;
             }
         } else {
             e.stuckChecks = 0;
@@ -1125,6 +1135,7 @@ public final class Game {
         });
         world.playSound(muzzle, "minecraft:entity.arrow.shoot", 0.8f, 1.1f);
         towerShots++;
+        d.uses++;
         e.towerHitTick = tick;
         e.mob.damage(Targeting.arrowDamage(d.type, d.level, e.type));
     }
@@ -1136,6 +1147,7 @@ public final class Game {
             Enemy e = (Enemy) cand.id();
             e.mob.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 2 * SECOND, d.type.slowAmplifier(d.level), false, true));
             e.towerHitTick = tick;
+            d.uses++;
             e.mob.damage(d.type.power(d.level));
             world.spawnParticle(Particle.BUBBLE_POP, e.mob.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0.05);
         }
@@ -1152,6 +1164,9 @@ public final class Game {
             }
             AttributeInstance max = p.getAttribute(Attribute.MAX_HEALTH);
             double cap = max == null ? 20 : max.getValue();
+            if (p.getHealth() < cap) {
+                d.uses++;
+            }
             p.setHealth(Math.min(cap, p.getHealth() + d.type.power(d.level)));
         }
         if (d.type.healsHeart(d.level) && phase == Phase.WAVE) {

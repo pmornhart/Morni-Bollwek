@@ -147,7 +147,7 @@ async function status() {
   const games = {};
   for (const line of lines) {
     if (!line.startsWith('karte=')) continue;
-    const s = { bauten: {}, players: {} };
+    const s = { bau: {}, players: {} };
     for (const part of line.split(' ')) {
       const [k, v] = part.split('=');
       if (k === 'herz') {
@@ -155,8 +155,8 @@ async function status() {
         s.herz = Number(h);
         s.max = Number(m);
       } else if (/^bau\d+$/.test(k)) {
-        const [type, level, hp] = v.split(':');
-        s.bauten[k.slice(3)] = { type, level: Number(level), hp: Number(hp) };
+        const [type, level, hp, uses] = v.split(':');
+        s.bau[k.slice(3)] = { type, level: Number(level), hp: Number(hp), uses: Number(uses) };
       } else if (/^[A-Z]/.test(k)) {
         const [state, gold, kills, revives] = v.split(':');
         s.players[k] = { state, gold: Number(gold), kills: Number(kills), revives: Number(revives) };
@@ -258,7 +258,7 @@ async function main() {
   const startedOk = await waitFor(() => onMap(anna, TAL) && onMap(bert, TAL), 12000);
   check('Runde startet: beide auf der Talsperre', startedOk, JSON.stringify(anna.entity.position));
   check('Start-Nachricht', sees(anna, /Auf geht's! Karte: Talsperre Morni-Dorf – 2 Verteidiger/));
-  check('Erklärung zum Herz (englisch)', sees(bert, /Defend the Village Well/));
+  check('Erklärung zum Herz (englisch)', sees(bert, /Hold the heart: Village Well/));
   await sleep(800);
   check('Ausrüstung: Steinschwert, Bogen, Smaragd (Laden), Farbstoff (Welle starten)',
     slot(anna, 0)?.name === 'stone_sword' && slot(anna, 1)?.name === 'bow' && slot(anna, 8)?.name === 'emerald' &&
@@ -298,10 +298,10 @@ async function main() {
   const placedT = await place(anna, 'Pfeilturm', TAL + 4, 100, -14);
   await sleep(500);
   s = (await status()).talsperre;
-  check('Pfeilturm gebaut (Bauplatz 8)', placedT && s.bauten['8']?.type === 'pfeilturm', JSON.stringify(s.bauten));
+  check('Pfeilturm gebaut (Bauplatz 8)', placedT && s.bau['8']?.type === 'pfeilturm', JSON.stringify(s.bau));
   const towerBlock = (await cmd(inWorld(`execute if block ${TAL + 3} 101 -15 spruce_log`)))[0];
   check('Turm steht als Blöcke (Holzpfosten)', /passed/i.test(towerBlock), towerBlock);
-  check('Alle sehen die Bau-Meldung (englisch)', await waitFor(() => sees(bert, /Anna built a Arrow tower/i), 2000),
+  check('Alle sehen die Bau-Meldung (englisch)', await waitFor(() => sees(bert, /Anna built: Arrow tower/), 2000),
     bert.chats.slice(-3).join(' | '));
   check('Bauplan verbraucht', !anna.inventory.items().some((i) => plain(i.customName).includes('Bauplan')),
     anna.inventory.items().map((i) => `${i.name}×${i.count}`).join(','));
@@ -321,7 +321,7 @@ async function main() {
     `${placedW} ${bert.chats.slice(-2).join(' | ')} ${bert.inventory.items().map((i) => i.name).join(',')}`);
   await place(bert, 'palisade', TAL + 0, 100, -16);
   s = (await status()).talsperre;
-  check('Palisade quer über den Nordweg gebaut', s.bauten['1']?.type === 'palisade' && s.bauten['1'].hp === 120, JSON.stringify(s.bauten));
+  check('Palisade quer über den Nordweg gebaut', s.bau['1']?.type === 'palisade' && s.bau['1'].hp === 120, JSON.stringify(s.bau));
   const pal = (await cmd(inWorld(`execute if block ${TAL - 1} 101 -16 spruce_log`)))[0];
   check('Palisade aus Holzstämmen', /passed/i.test(pal), pal);
   // Bau verbessern: Rechtsklick auf den Turm
@@ -357,11 +357,11 @@ async function main() {
   s = (await status()).talsperre;
   check('Pfeilturm schießt auf Gegner', towerShot, `Schüsse ${s.turm_schuesse}, Turm-Siege ${s.turm_kills}`);
   const palHit = await waitFor(async () => {
-    const b = (await status()).talsperre.bauten['1'];
+    const b = (await status()).talsperre.bau['1'];
     return !b || b.hp < 120;
   }, 30000, 1000);
   s = (await status()).talsperre;
-  check('Gegner schlagen auf die Palisade ein', palHit, JSON.stringify(s.bauten['1']));
+  check('Gegner schlagen auf die Palisade ein', palHit, JSON.stringify(s.bau['1']));
 
   // Anna besiegt einen Gegner selbst
   const before = (await status()).talsperre.players.Anna;
@@ -407,7 +407,7 @@ async function main() {
     await anna.clickWindow(13, 0, 0);
     await sleep(700);
     s = (await status()).talsperre;
-    check('Turm auf Stufe 2 verbessert (−55)', s.bauten['8'].level === 2 && s.players.Anna.gold === goldNow - 55, JSON.stringify(s.bauten['8']));
+    check('Turm auf Stufe 2 verbessert (−55)', s.bau['8'].level === 2 && s.players.Anna.gold === goldNow - 55, JSON.stringify(s.bau['8']));
     const stone = (await cmd(inWorld(`execute if block ${TAL + 3} 101 -15 stone_bricks`)))[0];
     check('Stufe 2 aus Stein', /passed/i.test(stone), stone);
   } else {
@@ -433,12 +433,44 @@ async function main() {
   check('Anna rettet Bert durch Ducken', revived && s.players.Anna.revives === 1, JSON.stringify(s.players));
   check('Meldung „wieder auf den Beinen“', await waitFor(() => sees(anna, /Bert ist wieder auf den Beinen/), 2000));
 
+  // ------------------------------------------------------------------ Kesselfalle + Heilbanner (Bert)
+  win = await openWithItem(bert, 8);
+  let reopened = new Promise((r) => { bert.once('windowOpen', r); setTimeout(() => r(null), 3000); });
+  await bert.clickWindow(29, 0, 0); // Kesselfalle (45)
+  await reopened;
+  await bert.clickWindow(31, 0, 0); // Heilbanner (40)
+  await sleep(700);
+  await closeWindow(bert);
+  await cmd(inWorld(`tp Bert ${TAL + 13.5} 101 0.5 90 40`));
+  await sleep(1200);
+  await place(bert, 'cauldron', TAL + 16, 100, 0);
+  await cmd(inWorld(`tp Bert ${TAL + 5.5} 101 -2.5 180 40`));
+  await sleep(1200);
+  await place(bert, 'healing banner', TAL + 5, 100, -6);
+  s = (await status()).talsperre;
+  check('Kesselfalle an der Bresche und Heilbanner am Dorfplatz gebaut',
+    s.bau['3']?.type === 'kesselfalle' && s.bau['13']?.type === 'heilbanner', JSON.stringify(s.bau));
+  const cauldron = (await cmd(inWorld(`execute if block ${TAL + 16} 102 2 water_cauldron`)))[0];
+  check('Kessel steht neben dem Weg (Weg bleibt frei)', /passed/i.test(cauldron) &&
+    /passed/i.test((await cmd(inWorld(`execute if block ${TAL + 16} 101 0 air`)))[0]), cauldron);
+  await cmd('effect give Bert minecraft:instant_health 1 3');
+  await sleep(500);
+  await cmd('damage Bert 8');
+  await sleep(300);
+  const hurt = bert.health;
+  const healed = await waitFor(() => bert.health > hurt, 6000, 200);
+  check('Heilbanner heilt Bert', healed, `${hurt} → ${bert.health}`);
+
   // ------------------------------------------------------------------ Wellen 2 und 3
   for (const n of [2, 3]) {
     await cmd('bollwerk welle ' + n + ' talsperre');
     await sleep(1500);
     const sn = (await status()).talsperre;
     check(`Welle ${n} läuft (${sn.gegner + sn.spawn} Gegner)`, sn.phase === 'WAVE' && sn.welle === n, JSON.stringify(sn));
+    if (n === 2) {
+      const scald = await waitFor(async () => (await status()).talsperre.bau['3']?.uses > 0, 40000, 1000);
+      check('Kesselfalle verbrüht Gegner an der Bresche', scald, JSON.stringify((await status()).talsperre.bau['3']));
+    }
     if (n === 3) {
       let shields = '';
       await waitFor(async () => /passed/i.test(shields = (await cmd(inWorld('execute if entity @e[tag=bollwerk_schildtraeger]')))[0]), 25000, 1000);
@@ -494,6 +526,13 @@ async function main() {
   check('Zurück in die Wachstube (alle, auch die Zuschauerin)', await waitFor(() => [anna, bert, carl, dora].every(inHall), 12000),
     [anna, bert, carl, dora].map((b) => `${b.username}:${b.game.gameMode}`).join(' '));
   check('Ausrüstung weg, Wachstuben-Knöpfe da', slot(anna, 0)?.name === 'compass');
+  const palGone = (await cmd(inWorld(`execute if block ${TAL - 1} 101 -16 air`)))[0];
+  const towerGone = (await cmd(inWorld(`execute if block ${TAL + 3} 101 -15 air`)))[0];
+  const pathBack = (await cmd(inWorld(`execute if block ${TAL} 100 -16 chiseled_stone_bricks`)))[0];
+  check('Karte aufgeräumt: Palisade und Turm weg, Bauplatz wie vorher', /passed/i.test(palGone) && /passed/i.test(towerGone) &&
+    /passed/i.test(pathBack), `${palGone} / ${towerGone} / ${pathBack}`);
+  const leftovers = (await cmd(inWorld('execute if entity @e[tag=bollwerk_enemy]')))[0];
+  check('Keine Gegner mehr übrig', /failed/i.test(leftovers), leftovers);
   const board = readFile(path.join(SERVER, 'plugins/MorniBollwerk/bestenliste.yml'));
   check('Bestenliste: Talsperre 4 Wellen mit Anna, Bert, Carl', /talsperre:[\s\S]*wellen: 4/.test(board) && /Carl/.test(board), board.trim().slice(0, 200));
   check('Spielerdatei: beste Welle 4', /talsperre: 4/.test(readFile(playerFile('Anna'))) && /rettungen: 1/.test(readFile(playerFile('Anna'))),
@@ -513,7 +552,7 @@ async function main() {
   anna.chat('/bereit');
   bert.chat('/bereit');
   check('Zweite Runde auf dem Klosterhof', await waitFor(() => onMap(anna, KLO) && onMap(bert, KLO), 15000), JSON.stringify(anna.entity.position));
-  check('Englisch: „Defend the Cloister Bell“', sees(bert, /Defend the Cloister Bell/));
+  check('Englisch: „Hold the heart: Cloister Bell“', sees(bert, /Hold the heart: Cloister Bell/));
   anna.chat('/bereit');
   bert.chat('/bereit');
   check('Welle 1 auf dem Klosterhof', await waitFor(() => sawTitle(anna, /Welle 1/), 8000));
