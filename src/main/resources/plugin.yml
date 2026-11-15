@@ -1,0 +1,48 @@
+name: MorniBollwerk
+version: '${project.version}'
+main: de.moinmorni.bollwerk.BollwerkPlugin
+api-version: '1.21'
+description: Bollwerk für das MoinMorni-Netzwerk – verteidigt das Dorf gegen Welle um Welle, 1 bis 6 Leute zusammen.
+authors: [MoinMorni]
+website: https://moinmorni.net
+# Läuft mit dem Netzwerk-Plugin (Sprache, Party, Statistik) und auch allein.
+softdepend: [MoinMorni]
+
+commands:
+  bollwerk:
+    description: Verwaltung (info, status, start, welle, herz, stopp, neubauen, neuladen)
+    usage: /bollwerk <info|status|start [karte]|welle <n> [karte]|herz <leben> [karte]|stopp [karte]|neubauen|neuladen>
+    permission: moinmorni.bollwerk.admin
+  shop:
+    description: Krämerladen öffnen (zwischen den Wellen)
+    usage: /shop
+    aliases: [laden, kraemer]
+  bereit:
+    description: In der Wachstube bereit melden – in der Runde die nächste Welle früher holen
+    usage: /bereit
+    aliases: [ready]
+  karte:
+    description: Über die Karte abstimmen
+    usage: /karte [talsperre|klosterhof]
+    aliases: [map, vote]
+  zuschauen:
+    description: Einer Runde zuschauen
+    usage: /zuschauen [spieler|karte]
+    aliases: [spectate, spec]
+  verlassen:
+    description: Runde oder Zuschauen verlassen (zurück in die Wachstube)
+    usage: /verlassen
+    aliases: [leave]
+  stats:
+    description: Statistik ansehen
+    usage: /stats [spieler]
+    aliases: [statistik]
+  top:
+    description: Beste Truppen je Karte
+    usage: /top [karte]
+    aliases: [bestenliste, leaderboard]
+
+permissions:
+  moinmorni.bollwerk.admin:
+    description: Bollwerk verwalten und im Kreativmodus in der Bollwerk-Welt bauen
+    default: op
