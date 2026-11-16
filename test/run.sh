@@ -6,7 +6,7 @@
 #   KEEP=1 test/run.sh          # Server danach laufen lassen (zum Nachschauen)
 #   KEEP=1 SKIP_TEST=1 test/run.sh   # nur Server starten
 #
-# Erwartet (Vorgaben für die Sandbox von morni.net, alles per Umgebungsvariable änderbar):
+# Erwartet (Vorgaben für die MoinMorni-Sandbox, alles per Umgebungsvariable änderbar):
 #   BOLLWERK_JAVA    Java 25 (Ordner; sonst die JDK 25 aus dem Cache, sonst JAVA_HOME)
 #   PAPER_JAR     Paper 26.1.2 (mineflayer kann bis 26.1)
 #   TEMPLATE      ein schon einmal gestarteter Paper-26.1.2-Ordner (libraries/, cache/, versions/ werden kopiert,
@@ -41,7 +41,7 @@ echo "== Bauen"
 (cd "$REPO" && mvn -q -B -f test/fake-network/pom.xml package)
 
 echo "== Server einrichten: $SERVER"
-mkdir -p "$SERVER/plugins/MorniBollwerk" "$SERVER/plugins/MorniNet"
+mkdir -p "$SERVER/plugins/MorniBollwerk" "$SERVER/plugins/MoinMorni"
 if [ -d "$TEMPLATE" ] && [ ! -d "$SERVER/libraries" ]; then
   cp -r "$TEMPLATE/libraries" "$TEMPLATE/cache" "$TEMPLATE/versions" "$SERVER/" 2>/dev/null || true
 fi
@@ -87,16 +87,14 @@ runde:
   retten-sekunden: 2
 EOF
 # Test-Netzwerk: Bert spricht Englisch, Anna und Carl sind eine Party (Anna führt).
-cat > "$SERVER/plugins/MorniNet/fake.properties" <<'EOF'
+cat > "$SERVER/plugins/MoinMorni/fake.properties" <<'EOF'
 lang.Bert=en
 party.Anna=Anna,Carl
 EOF
-rm -f "$SERVER/plugins/MorniNet/calls.log"
+rm -f "$SERVER/plugins/MoinMorni/calls.log"
 rm -rf "$SERVER/plugins/MorniBollwerk/spieler" "$SERVER/plugins/MorniBollwerk/bestenliste.yml"
-# Alte Jars weg (auch solche mit früherem Namen), damit nie zwei Fassungen laden.
-rm -f "$SERVER"/plugins/*.jar
 cp "$REPO/target/Morni-Bollwerk.jar" "$SERVER/plugins/"
-cp "$REPO/test/fake-network/target/MorniNet-FakeNetwork.jar" "$SERVER/plugins/"
+cp "$REPO/test/fake-network/target/MoinMorni-FakeNetwork.jar" "$SERVER/plugins/"
 for jar in ${EXTRA_PLUGINS:-}; do
   cp "$jar" "$SERVER/plugins/"
 done

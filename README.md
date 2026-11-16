@@ -1,6 +1,6 @@
 # Morni Bollwerk
 
-Der Verteidigungs-Modus des Minecraft-Netzwerks **morni.net**: **Verteidigt das Dorf gegen Welle um
+Der Verteidigungs-Modus des Minecraft-Netzwerks **MoinMorni** (moinmorni.net): **Verteidigt das Dorf gegen Welle um
 Welle – und rüstet zwischen den Wellen auf.** Zusammen mit 1 bis 6 Leuten (oder allein). Ein Paper-Plugin für
 Paper 26.x (Java 25). Es läuft im Netzwerk und auch ganz allein.
 
@@ -83,13 +83,13 @@ ausbessern“. Alle Menüs sind Truhen und gehen auch mit Bedrock (Geyser).
 | `/zuschauen [spieler\|karte]` | einer Runde zuschauen – auch `/spectate` |
 | `/verlassen` | Runde oder Zuschauen verlassen (zählt als gespielt) – auch `/leave` |
 | `/stats [spieler]` · `/top [karte]` | Statistik und beste Truppen |
-| `/bollwerk info\|status\|start [karte]\|welle <n> [karte]\|herz <leben> [karte]\|stopp\|neubauen\|neuladen` | Verwaltung (`morninet.bollwerk.admin`) |
+| `/bollwerk info\|status\|start [karte]\|welle <n> [karte]\|herz <leben> [karte]\|stopp\|neubauen\|neuladen` | Verwaltung (`moinmorni.bollwerk.admin`) |
 
 Einstellungen stehen in der `config.yml` (Countdown, Aufbauzeiten, Startgeld, Leben des Herzens, Zeit am Boden …).
 
 ## Im Netzwerk
 
-Das Netzwerk-Plugin („MorniNet“) stellt die Schnittstelle `net.morni.api.MorniNet` bereit; Bollwerk nutzt sie,
+Das Netzwerk-Plugin („MoinMorni“) stellt die Schnittstelle `de.moinmorni.api.MoinMorni` bereit; Bollwerk nutzt sie,
 wenn sie da ist (`softdepend`): Sprache der Spieler, Party (zusammen in eine Runde; wer später kommt, steigt als
 Verstärkung in die laufende Runde seiner Party ein), Statistik, Zustand für Lobby-Figur und Webseite, zurück zur Lobby.
 Ohne Netzwerk: deutsche Texte, Statistik nur lokal, „zur Lobby“ trennt die Verbindung mit einem Hinweis.
