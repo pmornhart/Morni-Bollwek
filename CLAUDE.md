@@ -16,10 +16,10 @@
 - Commits mit Stichpunkten `- Neu:` / `- Behoben:` / `- Verbessert:` / `- Entfernt:`.
 - Keine fremden Marken, Figuren, Namen, Texte oder Grafiken (keine Mojang-, Nintendo-, Hypixel- oder Inhalte anderer
   Server): nur die Spielidee „Wellen abwehren, zwischendurch aufrüsten“, eigene Namen, eigene Karten, eigene Gegner.
-- Die Netzwerk-Schnittstelle `src/api/java/de/moinmorni/api/MoinMorni.java` ist eine Kopie aus `pmornhart/moinmorni.net`
-  (`plugins/moinmorni-network/src/main/java/de/moinmorni/api/MoinMorni.java`) und muss **genau gleich** bleiben. Sie wird
+- Die Netzwerk-Schnittstelle `src/api/java/net/morni/api/MorniNet.java` ist eine Kopie aus `pmornhart/morni.net`
+  (`plugins/morninet-network/src/main/java/net/morni/api/MorniNet.java`) und muss **genau gleich** bleiben. Sie wird
   nur mitübersetzt und kommt **nicht** in die Jar. Nur `net/Connected` darf sie benutzen.
-- Bollwerk muss auch ohne Netzwerk laufen (`softdepend: [MoinMorni]`).
+- Bollwerk muss auch ohne Netzwerk laufen (`softdepend: [MorniNet]`).
 - Paper 26.x, Java 25. Der Code muss auch gegen Paper 26.1 übersetzen (`mvn -Ppaper-26.1 compile`, läuft in der CI).
 - Rechenregeln (Wellen, Gulden, Bauten, Herz, Bestenliste, Abstimmung) gehören in `logic/` bzw. `data/` – ohne Server,
   mit Tests. Werte dort nur zusammen mit den Tests ändern.
