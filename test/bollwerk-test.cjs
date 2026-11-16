@@ -4,7 +4,8 @@
  *
  * Spieler: Anna (deutsch, Party-Leiterin mit Carl), Bert (englisch), Carl (kommt als Verstärkung dazu), Dora
  * (schaut zu). Sprache und Party kommen vom Test-Netzwerk (test/fake-network), das auch Statistik, Zustand und
- * „zur Lobby“ in calls.log mitschreibt.
+ * „zur Lobby“ in calls.log mitschreibt – dazu „spielt gerade“ und freie Plätze nach einem Verbindungsabbruch (im Test
+ * 20 Sekunden).
  *
  * Verfasst mit Claude 🤖
  */
@@ -140,6 +141,9 @@ const clear = (...bots) =>
 const inWorld = (c) => `execute in minecraft:bollwerk run ${c}`;
 const TAL = 1000;
 const KLO = 2000;
+const RETURN_S = 20; // rueckkehr-sekunden im Test
+const holds = (mark, n) => calls().slice(mark).filter((c) => c.t === 'hold-slot' && c.name === n).map((c) => c.seconds).join(',');
+const lastPlaying = (n) => calls().filter((c) => c.t === 'playing' && c.name === n).slice(-1)[0]?.playing;
 
 /** /bollwerk status als Werte: {phase, welle, geschafft, herz, max, gegner, …, players: {Anna: {state, gold, kills, revives}}} */
 async function status() {
@@ -222,8 +226,8 @@ async function main() {
   await sleep(8000);
   const holos = String(await cmd(inWorld('execute positioned 0 101 0 if entity @e[type=text_display,distance=..30]')));
   check('Tafeln der Wachstube stehen, obwohl nach dem Start niemand da war', /: 6\b/.test(holos), holos.trim());
-  const anna = await join('Anna');
-  const bert = await join('Bert');
+  let anna = await join('Anna');
+  let bert = await join('Bert');
   check('Ankunft in der Wachstube', inHall(anna), JSON.stringify(anna.entity.position));
   check('Schnellleiste: Kompass, Farbstoff, Gold, Bett',
     slot(anna, 0)?.name === 'compass' && slot(anna, 1)?.name === 'gray_dye' && slot(anna, 4)?.name === 'gold_ingot' &&
@@ -260,7 +264,8 @@ async function main() {
     `${anna.chats.slice(-2).join(' | ')} / ${bert.chats.slice(-2).join(' | ')}`);
   check('Countdown in der Aktionsleiste', await waitFor(() => anna.bars.some((b) => /Nächste Runde in \d s · Karte: Talsperre/.test(b)), 4000),
     anna.bars.slice(-1)[0]);
-  const startedOk = await waitFor(() => onMap(anna, TAL) && onMap(bert, TAL), 12000);
+  // Beim ersten Start lädt der Server die Chunks der Karte; auf einem ausgelasteten Rechner dauert das deutlich länger.
+  const startedOk = await waitFor(() => onMap(anna, TAL) && onMap(bert, TAL), 45000);
   check('Runde startet: beide auf der Talsperre', startedOk, JSON.stringify(anna.entity.position));
   check('Start-Nachricht', sees(anna, /Auf geht's! Karte: Talsperre Morni-Dorf – 2 Verteidiger/));
   check('Erklärung zum Herz (englisch)', sees(bert, /Hold the heart: Village Well/));
@@ -269,6 +274,7 @@ async function main() {
     slot(anna, 0)?.name === 'stone_sword' && slot(anna, 1)?.name === 'bow' && slot(anna, 8)?.name === 'emerald' &&
       slot(anna, 7)?.name === 'lime_dye', [0, 1, 7, 8].map((i) => slot(anna, i)?.name).join(','));
   check('Netzwerk: Zustand „running“', await waitFor(() => calls().some((c) => c.t === 'state' && c.state === 'running'), 3000));
+  check('Netzwerk: Anna und Bert „spielen gerade“', lastPlaying('Anna') === true && lastPlaying('Bert') === true);
   let s = (await status()).talsperre;
   check('Aufbauphase, Herz 300/300, Startgeld 120', s?.phase === 'PREPARE' && s.herz === 300 && s.players.Anna?.gold === 120,
     JSON.stringify(s));
@@ -520,6 +526,47 @@ async function main() {
     `${dora.game.gameMode} ${JSON.stringify(dora.entity.position)}`);
   check('Hinweis „Du schaust … zu“', sees(dora, /Du schaust Talsperre Morni-Dorf zu/));
 
+  // ------------------------------------------------------------------ Geld zum Testen (Owner/Admin): /bollwerk geld
+  s = (await status()).talsperre;
+  const goldAnna = s.players.Anna.gold;
+  const goldBert = s.players.Bert.gold;
+  const [money] = await cmd('bollwerk geld Anna 30');
+  s = (await status()).talsperre;
+  check('/bollwerk geld Anna 30: +30 Gulden in der laufenden Runde, mit Bestätigung',
+    s.players.Anna.gold >= goldAnna + 30 && /Anna bekommt 30 Gulden – jetzt \d+/.test(money.replace(/§./g, '')),
+    `${goldAnna} → ${s.players.Anna.gold}: ${money.replace(/§./g, '')}`);
+  check('Anna liest „Vom Team zum Testen: +30 Gulden“', await waitFor(() => sees(anna, /Vom Team zum Testen: \+30 Gulden/), 3000),
+    anna.chats.slice(-2).join(' | '));
+  bert.chat('/bollwerk geld Bert 100');
+  await sleep(800);
+  s = (await status()).talsperre;
+  check('Ohne Verwaltungsrecht (Bert) gibt es kein Geld', s.players.Bert.gold - goldBert < 100, `${goldBert} → ${s.players.Bert.gold}`);
+
+  // ------------------------------------------------------------------ Verbindung weg, rechtzeitig zurück
+  let mark = calls().length;
+  await cmd('damage Bert 4 minecraft:out_of_world');
+  await waitFor(() => bert.health <= 16.5, 3000);
+  const bertBefore = { pos: bert.entity.position.clone(), hp: bert.health, gear: [0, 1, 7, 8].map((i) => slot(bert, i)?.name).join(',') };
+  clear(anna);
+  bert.quit();
+  check(`Bert weg: Anna erfährt es (Platz ${RETURN_S} s frei, weiter verteidigen)`, await waitFor(() =>
+    sees(anna, new RegExp(`Bert hat die Verbindung verloren – der Platz bleibt ${RETURN_S} Sekunden frei, ihr verteidigt weiter`)), 4000),
+  anna.chats.join(' | '));
+  s = (await status()).talsperre;
+  check('Bert bleibt in der Runde (Platz frei), die Runde läuft weiter', s.players.Bert?.state === 'ALIVE' && s.weg === 1 &&
+    s.angehalten === 'false', JSON.stringify({ bert: s.players.Bert, weg: s.weg, angehalten: s.angehalten }));
+  check(`Netzwerk: Platz für Bert frei (holdSlot ${RETURN_S})`, holds(mark, 'Bert') === String(RETURN_S), holds(mark, 'Bert'));
+  bert = await join('Bert');
+  check('Bert ist rechtzeitig zurück: auf der Karte, genau dort, wo er war', onMap(bert, TAL) &&
+    bert.entity.position.distanceTo(bertBefore.pos) < 1.5 && bert.game.gameMode === 'adventure',
+  `${bertBefore.pos} → ${bert.entity.position} ${bert.game.gameMode}`);
+  check('Bert hat seine Ausrüstung und sein Leben', [0, 1, 7, 8].map((i) => slot(bert, i)?.name).join(',') === bertBefore.gear &&
+    Math.abs(bert.health - bertBefore.hp) < 1, `${bertBefore.gear} → ${[0, 1, 7, 8].map((i) => slot(bert, i)?.name).join(',')}, ${bertBefore.hp} → ${bert.health}`);
+  check('Bert (englisch): „Welcome back“, Anna: „Bert ist wieder da“', await waitFor(() =>
+    sees(bert, /Welcome back! You're right where you were/) && sees(anna, /Bert ist wieder da/), 3000), bert.chats.join(' | '));
+  check('Netzwerk: Platz wieder zu (0), Bert „spielt“ wieder', holds(mark, 'Bert') === `${RETURN_S},0` && lastPlaying('Bert') === true,
+    holds(mark, 'Bert'));
+
   // ------------------------------------------------------------------ Boss-Welle, Herz nimmt Schaden, Ende
   clear(anna, bert, carl, dora);
   await cmd('bollwerk welle 5 talsperre');
@@ -566,6 +613,8 @@ async function main() {
   const top = (await cmd('top talsperre'))[0];
   check('/top zeigt die Truppe', /4 Wellen/.test(top), top.replace(/\n/g, ' | ').slice(0, 160));
   check('Netzwerk: Zustand wieder „waiting“', await waitFor(() => calls().filter((c) => c.t === 'state').slice(-1)[0]?.state === 'waiting', 4000));
+  check('Netzwerk: nach der Runde „spielt“ niemand mehr', ['Anna', 'Bert', 'Carl'].every((n) => lastPlaying(n) === false),
+    ['Anna', 'Bert', 'Carl'].map((n) => `${n}:${lastPlaying(n)}`).join(' '));
   check('Ergebnis „Neue Bestleistung“', sees(anna, /Neue Bestleistung für dich: 4 Wellen/));
 
   // ------------------------------------------------------------------ Klosterhof
@@ -585,6 +634,37 @@ async function main() {
   await sleep(4000);
   const pos1 = (await cmd(inWorld('execute as @e[tag=bollwerk_enemy,limit=1,sort=furthest] at @s run tp @s ~ ~ ~')))[0];
   check('Gegner unterwegs auf dem Klosterhof', /Teleported/i.test(pos1), pos1);
+
+  // ------------------------------------------------------------------ Alle weg: die Runde hält an
+  mark = calls().length;
+  anna.quit();
+  bert.quit();
+  await sleep(2500);
+  s = (await status()).klosterhof;
+  check('Alle weg: die Runde hält an (statt vorbei zu sein)', s && s.angehalten === 'true' && s.weg === 2,
+    JSON.stringify(s && { angehalten: s.angehalten, weg: s.weg, phase: s.phase }));
+  const frozenAt = (await cmd(inWorld('execute as @e[tag=bollwerk_enemy,limit=1,sort=furthest] at @s run tp @s ~ ~ ~')))[0];
+  await sleep(1500);
+  const frozenLater = (await cmd(inWorld('execute as @e[tag=bollwerk_enemy,limit=1,sort=furthest] at @s run tp @s ~ ~ ~')))[0];
+  check('Angehalten: Gegner eingefroren', frozenAt === frozenLater, `${frozenAt} / ${frozenLater}`);
+  anna = await join('Anna');
+  bert = await join('Bert');
+  s = (await status()).klosterhof;
+  check('Beide rechtzeitig zurück: die Runde läuft weiter, beide auf dem Klosterhof', s && s.angehalten === 'false' && s.weg === 0 &&
+    onMap(anna, KLO) && onMap(bert, KLO), JSON.stringify(s && { angehalten: s.angehalten, weg: s.weg }));
+  // Zu lange weg: wie bisher – in der Welle als Zuschauer zurück
+  clear(anna);
+  bert.quit();
+  check(`Zu lange weg (über ${RETURN_S} s): „Bert ist nicht rechtzeitig zurückgekommen“`, await waitFor(() =>
+    sees(anna, /Bert ist nicht rechtzeitig zurückgekommen/), RETURN_S * 1000 + 6000), anna.chats.join(' | '));
+  check(`Netzwerk: holdSlot für Bert ${RETURN_S}, 0, ${RETURN_S}, 0`, holds(mark, 'Bert') === `${RETURN_S},0,${RETURN_S},0`,
+    holds(mark, 'Bert'));
+  bert = await join('Bert');
+  await sleep(500);
+  s = (await status()).klosterhof;
+  check('Später zurück: wie bisher – in der Welle als Zuschauer (in der Aufbauphase auf der Karte), gehört weiter zur Runde',
+    s && s.players.Bert && (s.phase === 'WAVE' ? bert.game.gameMode === 'spectator' : onMap(bert, KLO)),
+    `${s?.phase} ${bert.game.gameMode} ${JSON.stringify(s?.players?.Bert)}`);
   for (const n of ['Anna', 'Bert']) await cmd(`effect give ${n} minecraft:resistance 600 4 true`);
   for (const n of ['Anna', 'Bert']) await cmd(inWorld(`tp ${n} ${KLO + 10.5} 101 -12.5`));
   const t1 = Date.now();
@@ -598,10 +678,21 @@ async function main() {
 
   // ------------------------------------------------------------------ Lobby-Knopf
   clear(anna);
+  mark = calls().length;
   anna.setQuickBarSlot(8);
   await sleep(200);
   anna.activateItem();
-  check('Bett: zur Lobby (Netzwerk)', await waitFor(() => calls().some((c) => c.t === 'to-lobby' && c.name === 'Anna'), 4000));
+  check('Bett: zur Lobby über askToLobby (Anna spielt nicht → sofort)', await waitFor(() =>
+    calls().slice(mark).some((c) => c.t === 'ask-to-lobby' && c.name === 'Anna' && c.playing === false), 4000) &&
+    !calls().slice(mark).some((c) => c.t === 'to-lobby' && c.name === 'Anna'));
+  // Älteres Netzwerk-Plugin (ohne Methoden ab Version 2): wie bisher sofort über toLobby
+  fs.appendFileSync(path.join(SERVER, 'plugins/MoinMorni/fake.properties'), 'api=1\n');
+  bert.setQuickBarSlot(8);
+  await sleep(200);
+  bert.activateItem();
+  check('Älteres Netzwerk-Plugin: Bett schickt wie bisher sofort in die Lobby (toLobby)', await waitFor(() =>
+    calls().slice(mark).some((c) => c.t === 'old-api' && c.method === 'askToLobby') &&
+      calls().slice(mark).some((c) => c.t === 'to-lobby' && c.name === 'Bert'), 4000));
 
   bert.quit();
   await sleep(500);

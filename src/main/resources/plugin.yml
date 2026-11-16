@@ -10,8 +10,8 @@ softdepend: [MoinMorni]
 
 commands:
   bollwerk:
-    description: Verwaltung (info, status, start, welle, herz, stopp, neubauen, neuladen)
-    usage: /bollwerk <info|status|start [karte]|welle <n> [karte]|herz <leben> [karte]|stopp [karte]|neubauen|neuladen>
+    description: Verwaltung (info, status, start, welle, herz, geld, stopp, neubauen, neuladen)
+    usage: /bollwerk <info|status|start [karte]|welle <n> [karte]|herz <leben> [karte]|geld <spieler> <betrag>|stopp [karte]|neubauen|neuladen>
     permission: moinmorni.bollwerk.admin
   shop:
     description: Krämerladen öffnen (zwischen den Wellen)

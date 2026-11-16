@@ -13,6 +13,7 @@
 #                 damit nichts heruntergeladen werden muss) – optional
 #   BOLLWERK_NODE_MODULES  node_modules mit mineflayer
 #   EXTRA_PLUGINS weitere Jars für den Server (z. B. ViaVersion + ViaBackwards für Paper 26.3)
+#   PAPER_XMS / PAPER_XMX  Speicher des Test-Servers (Vorgabe 1G / 2G; auf einem vollen Rechner z. B. 256M / 1536M)
 #
 # Paper 26.3 (wie im Netzwerk): mineflayer kann nur bis 26.1 und kommt über ViaBackwards hinein, darf sich dort aber
 # nicht bewegen (NO_MOVE=1 überspringt die Prüfungen, die laufen müssen):
@@ -71,7 +72,9 @@ motd=Morni Bollwerk Test
 allow-flight=true
 EOF
 # Testwerte: kurze Countdowns und Aufbauphasen, kleines Herz.
+# Platz nach Verbindungsabbruch im Test 20 Sekunden frei.
 cat > "$SERVER/plugins/MorniBollwerk/config.yml" <<'EOF'
+rueckkehr-sekunden: 20
 welt: bollwerk
 wachstube:
   countdown-sekunden: 8
@@ -104,7 +107,7 @@ done
 echo "== Server starten (Port $PORT, RCON $RCON_PORT)"
 cd "$SERVER"
 : > console.log
-"$JAVA" -Xms1G -Xmx2G -jar paper.jar --nogui < /dev/null > console.log 2>&1 &
+"$JAVA" -Xms"${PAPER_XMS:-1G}" -Xmx"${PAPER_XMX:-2G}" -jar paper.jar --nogui < /dev/null > console.log 2>&1 &
 PID=$!
 stop_server() {
   if kill -0 "$PID" 2>/dev/null; then
