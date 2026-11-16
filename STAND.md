@@ -24,12 +24,20 @@ Repo `pmornhart/morni-bollwek` (Name so gewollt), Jar `Morni-Bollwerk.jar`, engl
 
 ## Stand (16.11.2026)
 
-- Version 0.1.1 (Branch `claude/wachstube-tafeln`, wartet auf Philips Go): Funde aus dem Trailer-Dreh. Wachstube
+- Version 0.1.3 (Branch `claude/moinmorni`, wartet auf Philips Go): **Name wieder MoinMorni** – 0.1.2 (16.11.
+  veröffentlicht) hatte Bollwerk kurz an einen neuen Netzwerk-Namen angepasst; der war nicht verfügbar, darum ist der
+  Code wieder wie in 0.1.1 (Umbenennung per `git revert` zurückgenommen): Paket `de.moinmorni.bollwerk`,
+  Schnittstelle `de.moinmorni.api.MoinMorni`, Netzwerk-Plugin „MoinMorni“, Recht `moinmorni.bollwerk.admin`, Leiste
+  unten wieder moinmorni.net. Plugin-Name, Datenordner `plugins/MorniBollwerk`, Wachstube und Karten waren nie anders
+  (kein Umzug, kein Neubau). `test/run.sh` löscht alle alten Jars im Test-Server. Geprüft: 46 Unit-Tests, Paper 26.1
+  übersetzt, echt mit Paper 26.1.2: **99/99**, mit ViaVersion/ViaBackwards 5.12.2 ebenfalls **99/99**, Bollwerk
+  meldet sich beim Test-Netzwerk „MoinMorni“, Server-Log ohne Fehler.
+- Version 0.1.1 (16.11. veröffentlicht, Release v0.1.1): Funde aus dem Trailer-Dreh. Wachstube
   bekommt ein Plugin-Chunk-Ticket (`keepHallLoaded`) – vorher entlud der Server sie nach dem Start ohne Spieler und die
   nicht dauerhaften Tafeln waren weg; `refreshHall` stellt fehlende Tafeln neu auf (`Holo.valid`). Gegner gehen nicht
   mehr um eine stehende Palisade herum auf Spieler los, die dahinter stehen (`Game.behind`), sondern schlagen auf sie
   ein. Echter Test: zwei neue Prüfungen (vorher rot: 97/99), mit Korrektur 99/99.
-- Version 0.1.0 (erster Stand, Branch `claude/erster-stand`, noch nicht veröffentlicht): alles aus dem README.
+- Version 0.1.0 (15.11. veröffentlicht, Release v0.1.0): alles aus dem README.
 - Geprüft: 46 Unit-Tests (Wellen nach Welle und Spielerzahl, Boss-Wellen, Gulden, Laden-Stufen, Bauten, Zielwahl,
   Herz, Bestenliste, Spielerdaten, Partys, Abstimmung, Wege/Bauplätze der Karten, Texte).
 - Echter Test mit Paper 26.1.2 + ViaVersion/ViaBackwards 5.12.2 und vier Test-Spielern (mineflayer): 97/97 –
@@ -48,6 +56,6 @@ Repo `pmornhart/morni-bollwek` (Name so gewollt), Jar `Morni-Bollwerk.jar`, engl
 
 ## Offen
 
-- Philip: Bilder im echten Client ansehen; Go für `main` (dann erstes Release v0.1.0).
+- Philip: Bilder im echten Client ansehen; Go für `main` (dann Release v0.1.3).
 - Einstellungen (config.yml) im Panel des Netzwerks (Einstellungs-Katalog) – gehört ins Netzwerk-Repo.
 - Ideen: weitere Karten, Sitzplätze für Zuschauer, Belohnungen für Bestleistungen im Netzwerk.
