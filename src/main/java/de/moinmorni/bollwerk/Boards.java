@@ -133,6 +133,11 @@ public final class Boards {
         if (hallHolos.isEmpty()) {
             return;
         }
+        if (!hallHolos.stream().allMatch(Holo::valid)) {
+            // Weg (z. B. per /kill) – neu aufstellen.
+            spawnHall();
+            return;
+        }
         MapType[] maps = MapType.values();
         for (int i = 0; i < maps.length && i < hallHolos.size() - 1; i++) {
             MapType m = maps[i];

@@ -217,6 +217,11 @@ async function clearWave(n, karte = 'talsperre') {
 
 async function main() {
   // ------------------------------------------------------------------ Wachstube
+  // Die Tafeln sind nicht dauerhaft gespeichert: Ohne Ticket entlud der Server die Wachstube kurz nach dem Start,
+  // solange niemand da war, und die Tafeln blieben weg. Erst warten, dann (noch ohne Spieler) zählen.
+  await sleep(8000);
+  const holos = String(await cmd(inWorld('execute positioned 0 101 0 if entity @e[type=text_display,distance=..30]')));
+  check('Tafeln der Wachstube stehen, obwohl nach dem Start niemand da war', /: 6\b/.test(holos), holos.trim());
   const anna = await join('Anna');
   const bert = await join('Bert');
   check('Ankunft in der Wachstube', inHall(anna), JSON.stringify(anna.entity.position));
@@ -351,6 +356,27 @@ async function main() {
   await sleep(2000);
   const tagged = (await cmd(inWorld('execute if entity @e[tag=bollwerk_pluenderer]')))[0];
   check('Plünderer erscheinen (markiert)', /passed|count/i.test(tagged) || /\d+/.test(tagged), tagged);
+
+  // Wer direkt hinter der Palisade steht, wird nicht umlaufen: ein Plünderer vom Nordweg (vor der Palisade) schlägt
+  // auf die Palisade ein, statt seitlich vorbei auf Bert loszugehen. Beide unverwundbar, damit nur der Weg zählt.
+  const bertAt = bert.entity.position.clone();
+  let probe = '';
+  for (let i = 0; i < 20 && !/Applied|Tag/i.test(probe); i++) {
+    probe = (await cmd(inWorld(`execute positioned ${TAL - 10.5} 101 -46.5 run tag @e[tag=bollwerk_pluenderer,sort=nearest,limit=1,distance=..25] add mm_probe`)))[0];
+    if (!/Applied|Tag/i.test(probe)) await sleep(500);
+  }
+  await cmd(inWorld(`effect give @e[tag=mm_probe] resistance 30 4 true`), inWorld(`effect give Bert resistance 30 4 true`),
+    inWorld(`tp Bert ${TAL + 0.5} 101 -13.5 180 0`), inWorld(`tp @e[tag=mm_probe] ${TAL + 0.5} 101 -18.5`));
+  let passedWall = false;
+  for (let i = 0; i < 16 && !passedWall; i++) {
+    await sleep(500);
+    passedWall = /passed/i.test((await cmd(inWorld(`execute if entity @e[tag=mm_probe,x=${TAL - 6},y=95,z=-15.5,dx=12,dy=15,dz=5]`)))[0]);
+  }
+  s = (await status()).talsperre;
+  check('Gegner laufen nicht um die Palisade herum, wenn jemand dahinter steht', /Tag|Applied/i.test(probe) && !passedWall &&
+    s.bau['1'] && s.bau['1'].hp < 120, `${probe.trim()} · vorbei ${passedWall} · ${JSON.stringify(s.bau['1'])}`);
+  await cmd(inWorld('effect clear @e[tag=mm_probe]'), inWorld('tag @e[tag=mm_probe] remove mm_probe'), inWorld('effect clear Bert'),
+    inWorld(`tp Bert ${bertAt.x} ${bertAt.y} ${bertAt.z}`));
 
   // Gegner laufen die Wege entlang; Turm schießt, Palisade wird beschädigt
   const towerShot = await waitFor(async () => (await status()).talsperre.turm_schuesse > 0, 45000, 1000);
