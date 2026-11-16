@@ -22,8 +22,13 @@ Repo `pmornhart/morni-bollwek` (Name so gewollt), Jar `Morni-Bollwerk.jar`, engl
 - `src/api/java/de/moinmorni/api/MoinMorni.java`: Kopie der Netzwerk-Schnittstelle (nicht in der Jar).
 - `test/`: `run.sh` (echter Server), `bollwerk-test.cjs` (mineflayer), `rcon.cjs`, `fake-network/` (Test-Netzwerk).
 
-## Stand (15.11.2026)
+## Stand (16.11.2026)
 
+- Version 0.1.1 (Branch `claude/wachstube-tafeln`, wartet auf Philips Go): Funde aus dem Trailer-Dreh. Wachstube
+  bekommt ein Plugin-Chunk-Ticket (`keepHallLoaded`) – vorher entlud der Server sie nach dem Start ohne Spieler und die
+  nicht dauerhaften Tafeln waren weg; `refreshHall` stellt fehlende Tafeln neu auf (`Holo.valid`). Gegner gehen nicht
+  mehr um eine stehende Palisade herum auf Spieler los, die dahinter stehen (`Game.behind`), sondern schlagen auf sie
+  ein. Echter Test: zwei neue Prüfungen (vorher rot: 97/99), mit Korrektur 99/99.
 - Version 0.1.0 (erster Stand, Branch `claude/erster-stand`, noch nicht veröffentlicht): alles aus dem README.
 - Geprüft: 46 Unit-Tests (Wellen nach Welle und Spielerzahl, Boss-Wellen, Gulden, Laden-Stufen, Bauten, Zielwahl,
   Herz, Bestenliste, Spielerdaten, Partys, Abstimmung, Wege/Bauplätze der Karten, Texte).

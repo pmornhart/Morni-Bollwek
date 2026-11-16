@@ -12,6 +12,7 @@ import de.moinmorni.bollwerk.listen.PlayerListener;
 import de.moinmorni.bollwerk.menu.MenuListener;
 import de.moinmorni.bollwerk.net.Network;
 import de.moinmorni.bollwerk.world.Construction;
+import de.moinmorni.bollwerk.world.HallPlan;
 import de.moinmorni.bollwerk.world.MapType;
 import de.moinmorni.bollwerk.world.VoidGenerator;
 import java.io.IOException;
@@ -94,6 +95,7 @@ public final class BollwerkPlugin extends JavaPlugin {
             }
         }
 
+        keepHallLoaded();
         construction = new Construction(this, world);
         construction.ensure(false, () -> {
             ready = true;
@@ -134,6 +136,20 @@ public final class BollwerkPlugin extends JavaPlugin {
             store.close();
         }
         instance = null;
+    }
+
+    /**
+     * Die Wachstube bleibt immer geladen. Ihre Tafeln sind nicht dauerhaft gespeichert – ohne Ticket entlädt der Server
+     * die Chunks, sobald nach dem Start niemand da ist, und die Tafeln wären bis zum nächsten Neustart weg.
+     */
+    private void keepHallLoaded() {
+        int from = -HallPlan.REACH >> 4;
+        int to = HallPlan.REACH >> 4;
+        for (int cx = from; cx <= to; cx++) {
+            for (int cz = from; cz <= to; cz++) {
+                world.getChunkAt(cx, cz).addPluginChunkTicket(this);
+            }
+        }
     }
 
     private World createWorld(String name) {

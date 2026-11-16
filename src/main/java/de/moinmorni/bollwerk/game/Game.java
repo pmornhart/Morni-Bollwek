@@ -635,8 +635,14 @@ public final class Game {
                 broadcast(lang -> Texts.msg(lang, "boss.summon", Placeholder.unparsed("name", Texts.plain(lang, "enemy.nebelhexe"))));
             }
         }
-        // 1. Spieler in der Nähe? Nahkämpfer gehen auf sie los.
+        // 1. Spieler in der Nähe? Nahkämpfer gehen auf sie los – aber nicht seitlich um eine stehende Palisade herum:
+        //    Wer dahinter steht, ist geschützt, bis sie zerschlagen ist.
+        double prog = progress(e);
+        Defence wall = blockingWall(e, prog);
         Player victim = nearestStanding(here, e.type.ranged() ? 12 : PLAYER_CHASE);
+        if (victim != null && wall != null && behind(victim, wall, lane)) {
+            victim = null;
+        }
         if (victim != null && !e.type.wallBreaker()) {
             if (m.getTarget() != victim) {
                 m.setTarget(victim);
@@ -647,8 +653,6 @@ public final class Game {
             m.setTarget(null);
         }
         // 2. Bauten im Weg: Palisade auf dem eigenen Weg vor einem, Brecher nehmen jeden Bau in der Nähe.
-        double prog = progress(e);
-        Defence wall = blockingWall(e, prog);
         Defence target = wall;
         if (e.type.wallBreaker()) {
             Defence near = nearestDefence(here, BREAKER_REACH);
@@ -734,6 +738,12 @@ public final class Game {
             }
         }
         return best;
+    }
+
+    /** Steht der Spieler (auf dem Weg gesehen) hinter der Palisade? */
+    private boolean behind(Player p, Defence wall, MapLayout.Lane lane) {
+        Location l = p.getLocation();
+        return lane.progressAt(l.getX() - map.originX(), l.getZ() - map.originZ()) > spotProgress.get(wall.spot.id())[0];
     }
 
     /** Erste stehende Palisade auf dem Weg vor dem Gegner. */

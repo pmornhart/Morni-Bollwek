@@ -73,7 +73,12 @@ public final class Holo {
         }
     }
 
-    public void remove() {
+    /** Stehen beide Anzeigen noch? */
+    public boolean valid() {
+        return de.isValid() && en.isValid();
+    }
+
+        public void remove() {
         de.remove();
         en.remove();
         ALL.remove(this);
