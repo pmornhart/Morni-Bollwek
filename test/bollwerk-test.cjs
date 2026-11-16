@@ -66,7 +66,7 @@ const playerFile = (name) =>
   path.join(SERVER, 'plugins/MorniBollwerk/spieler', `${offlineUuid(name)}.yml`);
 const readFile = (file) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
 const calls = () =>
-  readFile(path.join(SERVER, 'plugins/MorniNet/calls.log'))
+  readFile(path.join(SERVER, 'plugins/MoinMorni/calls.log'))
     .split('\n')
     .filter(Boolean)
     .map((l) => JSON.parse(l));
