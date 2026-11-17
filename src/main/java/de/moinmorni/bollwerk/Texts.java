@@ -245,6 +245,25 @@ public final class Texts {
         t("game.left", "<gray><player> hat die Runde verlassen.</gray>", "<gray><player> left the round.</gray>");
         t("game.late", "<gray><player> kommt zur Verstärkung!</gray>", "<gray><player> joins as reinforcement!</gray>");
         t("game.respawn", "<em>Du bist wieder dabei!</em>", "<em>You're back in the fight!</em>");
+        t("admin.money", "<em>✔</em> <white><name></white> <gray>bekommt</gray> <au><n> Gulden</au><gray> – jetzt</gray> <au><total></au><gray>.</gray>",
+                "<em>✔</em> <white><name></white> <gray>gets</gray> <au><n> guilders</au><gray> – now</gray> <au><total></au><gray>.</gray>");
+        t("admin.money.usage", "<gray>So geht's: <white>/bollwerk geld \\<spieler> \\<betrag></white> – Gulden in der laufenden Runde (zum Testen).</gray>",
+                "<gray>Usage: <white>/bollwerk geld \\<player> \\<amount></white> – guilders in the running round (for testing).</gray>");
+        t("admin.money.nobody", "<gray><white><name></white> verteidigt gerade in keiner Runde.</gray>",
+                "<gray><white><name></white> isn't defending in a round right now.</gray>");
+        t("money.got", "<gray>Vom Team zum Testen:</gray> <au>+<n> Gulden</au><gray>.</gray>",
+                "<gray>From the team for testing:</gray> <au>+<n> guilders</au><gray>.</gray>");
+        t("game.away", "<gray><player> hat die Verbindung verloren – der Platz bleibt <secs> Sekunden frei, ihr verteidigt weiter.</gray>",
+                "<gray><player> lost the connection – their place stays free for <secs> seconds, keep defending.</gray>");
+        t("game.away.gone", "<gray><player> ist nicht rechtzeitig zurückgekommen.</gray>",
+                "<gray><player> didn't make it back in time.</gray>");
+        t("game.returned", "<gray><player> ist wieder da!</gray>", "<gray><player> is back!</gray>");
+        t("game.rejoin.title", "<em>Willkommen zurück!</em>", "<em>Welcome back!</em>");
+        t("game.rejoin.sub", "<gray>Die Verteidigung geht weiter.</gray>", "<gray>The defence goes on.</gray>");
+        t("game.rejoin", "<gray>Willkommen zurück! Du stehst wieder, wo du warst – mit Ausrüstung und Leben.</gray>",
+                "<gray>Welcome back! You're right where you were – same gear, same health.</gray>");
+        t("game.rejoin.out", "<gray>Willkommen zurück! Du lagst beim Gehen am Boden – ab der nächsten Aufbauphase bist du wieder dabei.</gray>",
+                "<gray>Welcome back! You were down when you left – you're back in from the next build phase.</gray>");
 
         // ---------- Am Boden / Retten ----------
         t("down.title", "<red>Du bist am Boden!</red>", "<red>You're down!</red>");

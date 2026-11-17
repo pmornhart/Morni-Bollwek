@@ -24,7 +24,29 @@ Repo `pmornhart/morni-bollwek` (Name so gewollt), Jar `Morni-Bollwerk.jar`, engl
 
 ## Stand (16.11.2026)
 
-- Version 0.1.3 (Branch `claude/moinmorni`, wartet auf Philips Go): **Name wieder MoinMorni** – 0.1.2 (16.11.
+- Version 0.1.4 (Branch `claude/zurueck-ins-spiel`, wartet auf Philips Go): **Zurück ins Spiel** (Philip: „Wenn das Game
+  crasht, soll man zurück zum Spiel können“ und vor der Lobby nachfragen, solange man spielt). Netzwerk-Schnittstelle 2
+  (Kopie byte-gleich): `playing` vom Start der Runde bis zum Ende bzw. Verlassen (wer bis zur nächsten Aufbauphase
+  zuschaut, spielt weiter), das Bett „Zurück zur Lobby“ ruft `askToLobby`, Verbindung mitten in der Runde weg → Platz
+  `rueckkehr-sekunden` frei (oben in der config.yml, Vorgabe 120, 0 = aus) und `holdSlot(uuid, s)`; die anderen
+  verteidigen weiter, Gulden, Ausrüstung und Kills bleiben. Rechtzeitig zurück → `PlayerState` stellt Ort, Inventar,
+  Leben, Hunger und Effekte wieder her, „Willkommen zurück!“, `holdSlot(uuid, 0)`; wer beim Gehen am Boden lag, ist raus
+  wie bisher und in der nächsten Aufbauphase wieder dabei. Sind alle weg (z. B. allein), hält die Runde an (Gegner
+  eingefroren, keine Aufbau-Zeit läuft); erst wenn niemand mehr zurückkommen kann, ist sie vorbei. Zu spät → wie bisher
+  (Aufbauphase: auf die Karte, Welle: zuschauen); Rundenende → `holdSlot(uuid, 0)`. Älteres Netzwerk-Plugin
+  (`LinkageError`) → einmal Hinweis im Log, alles wie bisher. `/bollwerk geld <spieler> <betrag>` (Philip: Owner und
+  Admins sollen sich zum Testen Geld geben können): Gulden in der laufenden Runde, Recht `moinmorni.bollwerk.admin`,
+  Bestätigung de/en. `/bollwerk status` zeigt `angehalten` und `weg`. Test-Netzwerk schreibt `playing`, `ask-to-lobby`
+  (fragt nur, solange „spielt“), `hold-slot` mit und spielt mit `api=1` ein älteres Netzwerk-Plugin. Geprüft: 48
+  Unit-Tests (neu `SettingsTest`; JUnit 6.1.3, Issue #3), Paper 26.1 übersetzt, echt mit Paper 26.1.2 (`test/run.sh`,
+  `rueckkehr-sekunden: 20`, Server mit 1,5 GB): **118/118**, Log ohne Fehler – neu: „spielt“ in der Runde und danach nicht mehr; Geld per Befehl (+30,
+  Bestätigung, Anna liest es, ohne Recht nichts); Bert weg → Anna erfährt es, Runde läuft weiter, holdSlot 20; Bert
+  zurück → genau an derselben Stelle, gleiche Ausrüstung und gleiches Leben, „Welcome back“, holdSlot 0; beide weg →
+  Runde angehalten, Gegner eingefroren, beide zurück → läuft weiter; zu lange weg → „nicht rechtzeitig zurückgekommen“,
+  holdSlot 20, 0, 20, 0, später zurück wie bisher als Zuschauer in der Welle; Bett → `askToLobby`, älteres
+  Netzwerk-Plugin → wie bisher `toLobby`. Test wartet beim ersten Rundenstart bis 45 s (auf dem ausgelasteten Rechner
+  lädt der Server die Chunks der Karte langsam – vorher 12 s).
+- Version 0.1.3 (16.11. veröffentlicht, Release v0.1.3): **Name wieder MoinMorni** – 0.1.2 (16.11.
   veröffentlicht) hatte Bollwerk kurz an einen neuen Netzwerk-Namen angepasst; der war nicht verfügbar, darum ist der
   Code wieder wie in 0.1.1 (Umbenennung per `git revert` zurückgenommen): Paket `de.moinmorni.bollwerk`,
   Schnittstelle `de.moinmorni.api.MoinMorni`, Netzwerk-Plugin „MoinMorni“, Recht `moinmorni.bollwerk.admin`, Leiste
@@ -56,6 +78,8 @@ Repo `pmornhart/morni-bollwek` (Name so gewollt), Jar `Morni-Bollwerk.jar`, engl
 
 ## Offen
 
-- Philip: Bilder im echten Client ansehen; Go für `main` (dann Release v0.1.3).
+- Philip: Go für `main` mit 0.1.4 (Zurück ins Spiel). Netzwerk-Repo: Einstellungs-Katalog um `rueckkehr-sekunden`
+  ergänzen (0–600, Vorgabe 120); Nachfrage vor der Lobby und „Zurück ins Spiel“ baut das Netzwerk-Plugin.
+- Nicht echt geprüft: Rückkehr mit echtem Client über das echte Netzwerk (Lobby-Angebot); Bilder im echten Client.
 - Einstellungen (config.yml) im Panel des Netzwerks (Einstellungs-Katalog) – gehört ins Netzwerk-Repo.
 - Ideen: weitere Karten, Sitzplätze für Zuschauer, Belohnungen für Bestleistungen im Netzwerk.

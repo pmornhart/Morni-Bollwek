@@ -2,6 +2,7 @@ package de.moinmorni.bollwerk;
 
 import de.moinmorni.bollwerk.data.Leaderboard;
 import de.moinmorni.bollwerk.data.PlayerData;
+import de.moinmorni.bollwerk.game.Fighter;
 import de.moinmorni.bollwerk.game.Game;
 import de.moinmorni.bollwerk.game.Shop;
 import de.moinmorni.bollwerk.hall.HallMenus;
@@ -25,6 +26,8 @@ import org.bukkit.entity.Player;
 final class Commands implements TabExecutor {
 
     private static final String ADMIN = "moinmorni.bollwerk.admin";
+    /** Höchstens so viel Geld auf einmal (zum Testen reicht das allemal). */
+    private static final int MAX_MONEY = 100_000;
     private final BollwerkPlugin plugin;
 
     Commands(BollwerkPlugin plugin) {
@@ -171,7 +174,7 @@ final class Commands implements TabExecutor {
         }
     }
 
-    /** Verwaltung: info, status, start, welle, herz, stopp, neubauen, neuladen. */
+    /** Verwaltung: info, status, start, welle, herz, geld, stopp, neubauen, neuladen. */
     private boolean admin(CommandSender sender, String[] args) {
         if (!sender.hasPermission(ADMIN)) {
             return true;
@@ -219,14 +222,43 @@ final class Commands implements TabExecutor {
                     g.setHeart(0);
                 }
             }
+            case "geld", "money" -> money(sender, args);
             case "neubauen" -> plugin.rebuild(() -> sender.sendMessage(Component.text("Neu gebaut.")));
             case "neuladen" -> {
                 plugin.reloadSettings();
                 sender.sendMessage(Component.text("Einstellungen neu geladen."));
             }
-            default -> sender.sendMessage(Component.text("/bollwerk info|status|start|welle|herz|stopp|neubauen|neuladen"));
+            default -> sender.sendMessage(Component.text("/bollwerk info|status|start|welle|herz|geld|stopp|neubauen|neuladen"));
         }
         return true;
+    }
+
+    /** /bollwerk geld <spieler> <betrag>: Gulden in der laufenden Runde dazugeben – zum Testen (Owner/Admin). */
+    private void money(CommandSender sender, String[] args) {
+        String lang = sender instanceof Player p ? plugin.lang(p) : "de";
+        int n = args.length > 2 ? parse(args[2], 0) : 0;
+        if (args.length < 3 || n <= 0 || n > MAX_MONEY) {
+            sender.sendMessage(Texts.msg(lang, "admin.money.usage"));
+            return;
+        }
+        for (Game g : plugin.games().all()) {
+            for (Fighter f : g.fighters().values()) {
+                if (!f.name().equalsIgnoreCase(args[1])) {
+                    continue;
+                }
+                f.wallet().earn(n);
+                plugin.boards().game(g);
+                sender.sendMessage(Texts.msg(lang, "admin.money", Placeholder.unparsed("name", f.name()),
+                        Placeholder.unparsed("n", String.valueOf(n)),
+                        Placeholder.unparsed("total", String.valueOf(f.wallet().balance()))));
+                Player target = Bukkit.getPlayer(f.uuid());
+                if (target != null && !target.equals(sender)) {
+                    target.sendMessage(Texts.msg(plugin.lang(target), "money.got", Placeholder.unparsed("n", String.valueOf(n))));
+                }
+                return;
+            }
+        }
+        sender.sendMessage(Texts.msg(lang, "admin.money.nobody", Placeholder.unparsed("name", args[1])));
     }
 
     private static int parse(String s, int fallback) {
@@ -243,7 +275,8 @@ final class Commands implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             switch (name) {
-                case "bollwerk" -> out.addAll(List.of("info", "status", "start", "welle", "herz", "stopp", "neubauen", "neuladen"));
+                case "bollwerk" -> out.addAll(List.of("info", "status", "start", "welle", "herz", "geld", "stopp", "neubauen",
+                        "neuladen"));
                 case "karte", "top" -> Arrays.stream(MapType.values()).forEach(m -> out.add(m.id()));
                 case "zuschauen", "stats" -> Bukkit.getOnlinePlayers().forEach(p -> out.add(p.getName()));
                 default -> {

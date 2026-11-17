@@ -61,6 +61,10 @@ import org.bukkit.util.Vector;
 /**
  * Eine Runde auf einer Karte: Aufbauphase, Welle, Aufbauphase … bis das Herz fällt. Läuft im Takt des Servers
  * ({@link #tick()} jeden Tick).
+ *
+ * <p>Verbindung weg mitten in der Runde: Der Platz bleibt {@code rueckkehr-sekunden} frei, die anderen verteidigen
+ * weiter. Kommt die Person rechtzeitig zurück, steht sie genau dort, wo sie war, mit Ausrüstung und Leben (lag sie am
+ * Boden, ist sie raus wie bisher). Sind alle weg, hält die Runde an (Gegner eingefroren). Danach gilt es wie bisher.
  */
 public final class Game {
 
@@ -117,6 +121,13 @@ public final class Game {
     private EnemyType bossType;
     private final Map<Integer, double[]> spotProgress = new HashMap<>();
     private org.bukkit.entity.Villager shopkeeper;
+    /** Verbindung weg: Platz frei bis … (Millisekunden) und Stand beim Gehen. */
+    private final Map<UUID, Away> away = new LinkedHashMap<>();
+    /** Alle weg: angehalten (Gegner eingefroren, keine Zeit läuft). */
+    private boolean paused;
+
+    private record Away(long until, PlayerState state) {
+    }
 
     Game(BollwerkPlugin plugin, MapType map, List<Player> players) {
         this.plugin = plugin;
@@ -156,6 +167,7 @@ public final class Game {
             Fighter f = new Fighter(p.getUniqueId(), p.getName(), settings.startGold());
             fighters.put(p.getUniqueId(), f);
             place(p, f, true);
+            plugin.net().playing(p, true);
             p.sendMessage(Texts.msg(plugin.lang(p), "game.welcome", Placeholder.unparsed("heart", heartName(plugin.lang(p))),
                     Placeholder.unparsed("secs", String.valueOf(settings.firstPrepare()))));
         }
@@ -239,8 +251,9 @@ public final class Game {
     public String status() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(Locale.ROOT, "karte=%s phase=%s welle=%d geschafft=%d herz=%.0f/%.0f gegner=%d spawn=%d "
-                + "bauten=%d turm_schuesse=%d turm_kills=%d festgesteckt=%d", map.id(), phase, wave, cleared, heart.health(),
-                heart.max(), enemies.size(), toSpawn.size(), defences.size(), towerShots, towerKills, stuckTeleports));
+                + "bauten=%d turm_schuesse=%d turm_kills=%d festgesteckt=%d angehalten=%s weg=%d", map.id(), phase, wave,
+                cleared, heart.health(), heart.max(), enemies.size(), toSpawn.size(), defences.size(), towerShots, towerKills,
+                stuckTeleports, paused, away.size()));
         for (int i = 0; i < layout.lanes().size(); i++) {
             sb.append(" am_herz_").append(layout.lanes().get(i).id()).append('=').append(heartArrivals[i]);
         }
@@ -279,9 +292,33 @@ public final class Game {
         Holo.refresh(plugin, p, lang);
     }
 
-    /** Wiederkommen nach Verbindungsabbruch oder als Nachzügler aus der Party. */
+    /**
+     * Wiederkommen nach Verbindungsabbruch oder als Nachzügler aus der Party. Ist der Platz noch frei und stand die
+     * Person beim Gehen, geht es genau dort weiter (Ort, Ausrüstung, Leben); sonst wie bisher (Aufbauphase: auf die
+     * Karte, Welle: zuschauen bis zur nächsten Aufbauphase).
+     */
     public void rejoin(Player p, boolean late) {
         Fighter f = fighters.get(p.getUniqueId());
+        Away back = away.remove(p.getUniqueId());
+        if (back != null) {
+            plugin.net().holdSlot(p.getUniqueId(), 0);
+        }
+        plugin.net().playing(p, true);
+        if (back != null && f != null && f.state() == Fighter.State.ALIVE && phase != Phase.OVER) {
+            f.online(true);
+            String lang = plugin.lang(p);
+            back.state().restore(p);
+            p.setFallDistance(0);
+            Kit.buttons(p, lang, phase == Phase.PREPARE);
+            heartBar.show(p, lang);
+            waveBar.show(p, lang);
+            Holo.refresh(plugin, p, lang);
+            Ui.title(p, Texts.text(lang, "game.rejoin.title"), Texts.text(lang, "game.rejoin.sub"), 2500);
+            p.sendMessage(Texts.msg(lang, "game.rejoin"));
+            Fighter me = f;
+            broadcastExcept(p, l -> Texts.msg(l, "game.returned", Placeholder.unparsed("player", me.name())));
+            return;
+        }
         if (f == null) {
             int gold = settings.startGold() + cleared * Economy.waveBonus(Math.max(1, cleared)) / 2;
             f = new Fighter(p.getUniqueId(), p.getName(), gold);
@@ -294,13 +331,24 @@ public final class Game {
             place(p, f, late || p.getInventory().isEmpty());
         } else {
             out(p, f, false);
+            if (back != null) {
+                p.sendMessage(Texts.msg(plugin.lang(p), "game.rejoin.out"));
+            }
         }
     }
 
+    /** Verbindung weg: mitten in der Runde bleibt der Platz {@code rueckkehr-sekunden} frei (am Boden = raus wie bisher). */
     public void quit(Player p) {
         Fighter f = fighters.get(p.getUniqueId());
         spectators.remove(p.getUniqueId());
         if (f != null) {
+            int seconds = plugin.settings().returnSeconds();
+            if (seconds > 0 && phase != Phase.OVER && f.online() && !away.containsKey(p.getUniqueId())) {
+                away.put(p.getUniqueId(), new Away(System.currentTimeMillis() + seconds * 1000L, PlayerState.of(p)));
+                plugin.net().holdSlot(p.getUniqueId(), seconds);
+                broadcastExcept(p, lang -> Texts.msg(lang, "game.away", Placeholder.unparsed("player", f.name()),
+                        Placeholder.unparsed("secs", String.valueOf(seconds))));
+            }
             f.online(false);
             if (f.state() == Fighter.State.DOWNED) {
                 f.state(Fighter.State.OUT);
@@ -310,10 +358,72 @@ public final class Game {
         waveBar.hide(p);
     }
 
+    /** Frist um: der Platz ist nicht mehr frei – danach wie bisher (später zurück: Aufbauphase oder zuschauen). */
+    private void checkAway() {
+        if (away.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (UUID u : List.copyOf(away.keySet())) {
+            Away a = away.get(u);
+            if (a == null || a.until() > now) {
+                continue;
+            }
+            away.remove(u);
+            plugin.net().holdSlot(u, 0);
+            Fighter f = fighters.get(u);
+            if (f != null) {
+                broadcast(lang -> Texts.msg(lang, "game.away.gone", Placeholder.unparsed("player", f.name())));
+            }
+        }
+    }
+
+    /** Runde vorbei: niemandem mehr einen Platz frei halten. */
+    private void releaseAway() {
+        for (UUID u : List.copyOf(away.keySet())) {
+            away.remove(u);
+            plugin.net().holdSlot(u, 0);
+        }
+    }
+
+    /** Alle weg: Gegner einfrieren. */
+    private void pause() {
+        if (paused) {
+            return;
+        }
+        paused = true;
+        for (Enemy e : enemies.values()) {
+            e.mob.setAI(false);
+        }
+    }
+
+    /** Jemand ist zurück: Gegner wieder los. */
+    private void resume() {
+        if (!paused) {
+            return;
+        }
+        paused = false;
+        if (phase == Phase.OVER) {
+            return;
+        }
+        for (Enemy e : enemies.values()) {
+            e.mob.setAI(true);
+        }
+    }
+
+    /** Angehalten, weil alle weg sind (für /bollwerk status und Tests)? */
+    public boolean paused() {
+        return paused;
+    }
+
     /** Freiwillig gehen (/verlassen): zählt als gespielt. */
     public void leave(Player p) {
         Fighter f = fighters.remove(p.getUniqueId());
         spectators.remove(p.getUniqueId());
+        if (away.remove(p.getUniqueId()) != null) {
+            plugin.net().holdSlot(p.getUniqueId(), 0);
+        }
+        plugin.net().playing(p, false);
         heartBar.hide(p);
         waveBar.hide(p);
         if (f != null) {
@@ -361,6 +471,14 @@ public final class Game {
         }
     }
 
+    private void broadcastExcept(Player except, Function<String, Component> msg) {
+        for (Player p : audience()) {
+            if (!p.equals(except)) {
+                p.sendMessage(msg.apply(plugin.lang(p)));
+            }
+        }
+    }
+
     private void titleAll(String main, String sub, TagResolver... r) {
         for (Player p : audience()) {
             String lang = plugin.lang(p);
@@ -379,10 +497,16 @@ public final class Game {
     /** Jeden Tick. Liefert {@code false}, wenn die Runde vorbei und aufgeräumt ist. */
     public boolean tick() {
         tick++;
+        checkAway();
         if (fighters.values().stream().noneMatch(Fighter::online) && phase != Phase.OVER) {
+            if (!away.isEmpty()) {
+                pause(); // alle weg, aber jemand darf noch zurückkommen: die Runde wartet
+                return true;
+            }
             broadcast(lang -> Texts.msg(lang, "game.abandoned"));
             gameOver(true);
         }
+        resume();
         switch (phase) {
             case PREPARE -> tickPrepare();
             case WAVE -> tickWave();
@@ -1328,6 +1452,11 @@ public final class Game {
         }
         phase = Phase.OVER;
         phaseTicks = settings.afterSeconds() * SECOND;
+        paused = false;
+        releaseAway();
+        for (Player p : audience()) {
+            plugin.net().playing(p, false);
+        }
         for (Enemy e : enemies.values()) {
             e.mob.setAI(false);
             e.mob.setInvulnerable(true);
@@ -1371,6 +1500,7 @@ public final class Game {
 
     /** Aufräumen und alle zurück in die Wachstube. */
     public void close() {
+        releaseAway();
         if (phase != Phase.OVER) {
             phase = Phase.OVER;
             for (Fighter f : fighters.values()) {
@@ -1403,6 +1533,7 @@ public final class Game {
             heartBar.hide(p);
             waveBar.hide(p);
             p.setPose(Pose.STANDING, false);
+            plugin.net().playing(p, false);
             plugin.hall().enter(p);
         }
         fighters.clear();

@@ -14,7 +14,11 @@ public record Settings(
         int startGold,
         int heartHealth,
         int downSeconds,
-        int reviveSeconds) {
+        int reviveSeconds,
+        int returnSeconds) {
+
+    /** Höchstens so lange bleibt ein Platz frei. */
+    private static final int MAX_RETURN_SECONDS = 600;
 
     static Settings load(FileConfiguration c) {
         return new Settings(
@@ -28,7 +32,8 @@ public record Settings(
                 clamp(c.getInt("runde.startgeld", 50), 0, 100000),
                 clamp(c.getInt("runde.herz-leben", 400), 1, 100000),
                 clamp(c.getInt("runde.am-boden-sekunden", 25), 3, 300),
-                clamp(c.getInt("runde.retten-sekunden", 3), 1, 30));
+                clamp(c.getInt("runde.retten-sekunden", 3), 1, 30),
+                clamp(c.getInt("rueckkehr-sekunden", 120), 0, MAX_RETURN_SECONDS));
     }
 
     private static int clamp(int v, int min, int max) {

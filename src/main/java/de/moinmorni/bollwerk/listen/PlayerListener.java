@@ -77,6 +77,7 @@ public final class PlayerListener implements Listener {
         }
         plugin.boards().sidebar().forget(p.getUniqueId());
         plugin.store().unload(p.getUniqueId());
+        plugin.net().forget(p.getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -98,8 +99,9 @@ public final class PlayerListener implements Listener {
                 case "ready" -> plugin.hall().toggleReady(p);
                 case "stats" -> HallMenus.stats(plugin, p);
                 case "lobby" -> {
+                    // Eigener Wunsch: das Netzwerk fragt nach, wenn jemand gerade spielt (in der Wachstube spielt niemand).
                     p.sendMessage(Texts.msg(plugin.lang(p), "lobby.going"));
-                    plugin.net().toLobby(p, Texts.text(plugin.lang(p), "lobby.kick"));
+                    plugin.net().askToLobby(p, Texts.text(plugin.lang(p), "lobby.kick"));
                 }
                 default -> {
                 }

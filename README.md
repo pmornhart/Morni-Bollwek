@@ -23,6 +23,10 @@ Englischer Name: **Bulwark**. (Das Repo heißt `morni-bollwek` – der Name des 
    dabei.
 6. **Fällt das Herz, ist die Runde vorbei.** Gewertet wird, wie viele Wellen die Truppe überstanden hat – die besten
    Truppen je Karte stehen auf der Bestenliste.
+7. **Zurück ins Spiel:** Verbindung mitten in der Runde weg (Spiel abgestürzt, Internet weg)? Der Platz bleibt 120
+   Sekunden frei (`rueckkehr-sekunden`), die anderen verteidigen weiter. Wer rechtzeitig zurückkommt, steht genau dort,
+   wo er war, mit Ausrüstung und Leben (wer am Boden lag, ist raus wie bisher). Sind alle weg, hält die Runde an –
+   Gegner eingefroren –, bis jemand zurückkommt.
 
 ## Karten (eigene Entwürfe, aus dem Code gebaut)
 
@@ -84,8 +88,10 @@ ausbessern“. Alle Menüs sind Truhen und gehen auch mit Bedrock (Geyser).
 | `/verlassen` | Runde oder Zuschauen verlassen (zählt als gespielt) – auch `/leave` |
 | `/stats [spieler]` · `/top [karte]` | Statistik und beste Truppen |
 | `/bollwerk info\|status\|start [karte]\|welle <n> [karte]\|herz <leben> [karte]\|stopp\|neubauen\|neuladen` | Verwaltung (`moinmorni.bollwerk.admin`) |
+| `/bollwerk geld <spieler> <betrag>` | Gulden in der laufenden Runde dazugeben – zum Testen (`moinmorni.bollwerk.admin`, im Netzwerk Owner und Admin über „Spielmodi verwalten“) |
 
-Einstellungen stehen in der `config.yml` (Countdown, Aufbauzeiten, Startgeld, Leben des Herzens, Zeit am Boden …).
+Einstellungen stehen in der `config.yml` (Rückkehr nach Verbindungsabbruch, Countdown, Aufbauzeiten, Startgeld, Leben des
+Herzens, Zeit am Boden …).
 
 ## Im Netzwerk
 
@@ -93,6 +99,11 @@ Das Netzwerk-Plugin („MoinMorni“) stellt die Schnittstelle `de.moinmorni.api
 wenn sie da ist (`softdepend`): Sprache der Spieler, Party (zusammen in eine Runde; wer später kommt, steigt als
 Verstärkung in die laufende Runde seiner Party ein), Statistik, Zustand für Lobby-Figur und Webseite, zurück zur Lobby.
 Ohne Netzwerk: deutsche Texte, Statistik nur lokal, „zur Lobby“ trennt die Verbindung mit einem Hinweis.
+
+Ab Schnittstelle 2 meldet Bollwerk außerdem, wer gerade spielt (`playing`: von der Runde bis zum Ende oder Verlassen –
+auch, wer bis zur nächsten Aufbauphase zuschaut, gehört noch dazu), hält nach einem Verbindungsabbruch den Platz frei
+(`holdSlot`: die Lobby bietet „Zurück ins Spiel“ an, `0` nimmt das Angebot zurück) und schickt mit dem Bett in der
+Wachstube über `askToLobby`. Ein älteres Netzwerk-Plugin kennt das nicht; dann läuft alles wie bisher.
 
 Statistik nach jeder Runde (`stats("bollwerk", …)`, höher ist besser):
 
@@ -118,7 +129,8 @@ Bert spricht Englisch, Anna und Carl sind eine Party, alle Meldungen landen in `
 Paper-26.1.2-Server ein (offline, Port 25790, RCON 25890, kurze Aufbauzeiten, Herz mit 300 Leben) und schickt vier
 Test-Spieler durch Wachstube, Abstimmung, Countdown, Laden, Bauen und Verbessern, Wellen, Turm, Palisade, Kessel,
 Heilbanner, Am-Boden und Retten, Boss, Verstärkung aus der Party, Zuschauen, das Ende der Runde, Statistik und
-Bestenliste und eine zweite Runde auf dem Klosterhof (`test/bollwerk-test.cjs`). Mit
+Bestenliste, Geld zum Testen, Verbindungsabbrüche (rechtzeitig zurück, alle weg = Pause, zu lange weg) und eine
+zweite Runde auf dem Klosterhof (`test/bollwerk-test.cjs`). Mit
 `EXTRA_PLUGINS="…/ViaVersion.jar …/ViaBackwards.jar"` kommen ViaVersion und ViaBackwards dazu; Pfade und Ports lassen
 sich per Umgebung ändern (siehe Kopf von `test/run.sh`).
 
